@@ -1,0 +1,16 @@
+awox:
+  username: "awox email"
+  password: "awox password"
+  target_device_name: "device name (leave empty if unknown)"
+
+mqtt:
+  endpoint: "a3n0qz5q2o66io.iot.us-east-1.amazonaws.com"
+  port: 443
+
+
+storage:
+  state_file: "./state.yaml"
+  certificate_directory: "../certs"
+
+logging:
+  level: "INFO"
