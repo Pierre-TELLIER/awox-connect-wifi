@@ -1,0 +1,16 @@
+{
+  "domain": "awox",
+  "name": "AwoX",
+  "version": "0.1.0",
+  "documentation": "https://forge.piair.dev/Piair/awox-smart-control",
+  "requirements": [
+    "paho-mqtt>=2.0.0",
+    "cryptography>=42.0.0",
+    "requests>=2.31.0",
+    "PyYAML>=6.0.0"
+  ],
+  "codeowners": [],
+  "config_flow": true,
+  "iot_class": "cloud_push"
+}
+
