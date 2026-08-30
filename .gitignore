@@ -1,1 +1,15 @@
 cert/
+__pycache__/
+*.py[cod]
+*$py.class
+
+.venv/
+venv/
+.env
+
+config/config.yaml
+config/state.yaml
+
+*.egg-info/
+dist/
+build/

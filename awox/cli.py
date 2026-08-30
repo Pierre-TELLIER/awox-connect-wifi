@@ -29,7 +29,7 @@ def main():
     config = load_config()
     state = load_state(config.storage.state_file)
 
-    if state is None or not state.provisioned:
+    if not state.provisioned:
         print("Device is not provisioned.")
         provisioner = Provisioner(config, state)
         state = provisioner.provision()
