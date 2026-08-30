@@ -19,7 +19,6 @@ class MQTTClient:
     def __init__(self, config: AppConfig, device: DeviceState):
         self.config = config
         self.mqtt_config = config.mqtt
-        self.app_config = load_config()
         self.device = device
         self.client = self.configure_client()
 
@@ -31,7 +30,7 @@ class MQTTClient:
             protocol=mqtt.MQTTv311,
         )
 
-        cert_dir = self.app_config.storage.certificate_directory
+        cert_dir = self.config.storage.certificate_directory
 
 
         ssl_ctx = ssl.create_default_context(cafile= cert_dir / "root-ca.crt")
