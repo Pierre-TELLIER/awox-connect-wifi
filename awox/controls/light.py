@@ -87,3 +87,25 @@ class Light:
             f"[→] Color RGB({r},{g},{b}) "
             f"→ {self.command_topic}"
         )
+
+
+    def set_temperature(self, temperature: int) -> None:
+        if not 0 <= temperature <= 100:
+            raise ValueError("Temperature must be between 0 and 100")
+
+        payload = self.mqtt.make_payload(
+            f"/v1/devices/{self.device_id}/lighttemperature",
+            "PUT",
+            {"temperatureSetting": temperature},
+        )
+
+        self.mqtt.client.publish(
+            self.command_topic,
+            payload,
+            qos=1,
+        )
+
+        print(
+            f"[→] Temperature {temperature} "
+            f"→ {self.command_topic}"
+        )

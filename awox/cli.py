@@ -52,7 +52,7 @@ def main():
 
         print(
             "\nCommands: "
-            "on | off | bright <0-100> | "
+            "on | off | bright <0-100> | temp <0-100>"
             "color <r> <g> <b> | quit"
         )
 
@@ -78,6 +78,9 @@ def main():
                         int(cmd[2]),
                         int(cmd[3]),
                     )
+
+                elif cmd[0] == "temp" and len(cmd) == 2:
+                    light.set_temperature(int(cmd[1]))
 
                 elif cmd[0] in ("quit", "exit", "q"):
                     break
