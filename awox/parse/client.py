@@ -60,7 +60,6 @@ class ParseClient:
             'content-type': 'application/json',
             'x-parse-session-token': self._session_token
         }
-        print(headers)
         response = self.session.request("POST", self.api_url + 'classes/' + class_name, headers=headers, data=payload)
 
         if response.status_code != 200:
