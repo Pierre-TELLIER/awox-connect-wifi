@@ -1,4 +1,4 @@
-cert/
+certs/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -6,6 +6,7 @@ __pycache__/
 .venv/
 venv/
 .env
+.idea
 
 config/config.yaml
 config/state.yaml
