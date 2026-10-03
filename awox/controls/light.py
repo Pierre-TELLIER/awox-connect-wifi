@@ -4,10 +4,10 @@ from awox.state import DeviceState
 
 class Light:
     def __init__(
-        self,
-        mqtt: MQTTClient,
-        device_id: str,
-        device: DeviceState,
+            self,
+            mqtt: MQTTClient,
+            device_id: str,
+            device: DeviceState,
     ):
         self.mqtt = mqtt
         self.device_id = device_id
@@ -19,6 +19,13 @@ class Light:
             f"aw/{self.device.account_id}"
             f"/r/{self.device.bridge_gateware_id}"
             f"/{self.device.udn}"
+        )
+
+    def put(self, payload) -> None:
+        self.mqtt.client.publish(
+            self.command_topic,
+            payload,
+            qos=1,
         )
 
     def turn_on(self) -> None:
@@ -34,16 +41,7 @@ class Light:
             {"value": 1 if state else 0},
         )
 
-        self.mqtt.client.publish(
-            self.command_topic,
-            payload,
-            qos=1,
-        )
-
-        print(
-            f"[→] Power {'ON' if state else 'OFF'} "
-            f"→ {self.command_topic}"
-        )
+        self.put(payload)
 
     def set_brightness(self, level: int) -> None:
         if not 0 <= level <= 100:
@@ -55,16 +53,7 @@ class Light:
             {"dimmingSetting": level},
         )
 
-        self.mqtt.client.publish(
-            self.command_topic,
-            payload,
-            qos=1,
-        )
-
-        print(
-            f"[→] Brightness {level} "
-            f"→ {self.command_topic}"
-        )
+        self.put(payload)
 
     def set_color(self, r: int, g: int, b: int) -> None:
         for value in (r, g, b):
@@ -77,17 +66,7 @@ class Light:
             {"rgbValue": [r, g, b]},
         )
 
-        self.mqtt.client.publish(
-            self.command_topic,
-            payload,
-            qos=1,
-        )
-
-        print(
-            f"[→] Color RGB({r},{g},{b}) "
-            f"→ {self.command_topic}"
-        )
-
+        self.put(payload)
 
     def set_temperature(self, temperature: int) -> None:
         if not 0 <= temperature <= 100:
@@ -99,13 +78,4 @@ class Light:
             {"temperatureSetting": temperature},
         )
 
-        self.mqtt.client.publish(
-            self.command_topic,
-            payload,
-            qos=1,
-        )
-
-        print(
-            f"[→] Temperature {temperature} "
-            f"→ {self.command_topic}"
-        )
+        self.put(payload)
