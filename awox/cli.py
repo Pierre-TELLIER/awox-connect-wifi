@@ -1,7 +1,7 @@
 from awox.config import load_config
 from awox.controls.light import Light
 from awox.mqtt.client import MQTTClient
-from awox.provisionning.provisioner import Provisioner
+from awox.provisioning.provisioner import Provisioner
 from awox.state import load_state
 
 
