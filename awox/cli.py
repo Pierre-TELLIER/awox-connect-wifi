@@ -30,7 +30,7 @@ def select_device(state):
     print("\nAvailable devices:")
 
     for index, (device_id, device) in enumerate(devices, start=1):
-        print(f"  {index}. {device_id}")
+        print(f"  {index}. {device.friendly_name} ({device_id})")
 
     while True:
         try:
