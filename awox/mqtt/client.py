@@ -1,18 +1,17 @@
 import datetime
 import json
 import ssl
-import time
+from logging import debug, info
 
 import paho.mqtt.client as mqtt
 
-from awox.config import load_config, AppConfig
+from awox.config import AppConfig
 from awox.state import DeviceState
 
 
 # -- Helpers --
 def iso_ts():
-    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + \
-           f"{datetime.datetime.now(datetime.timezone.utc).microsecond // 1000:03d}Z"
+    return datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="milliseconds")
 
 
 class MQTTClient:
@@ -32,9 +31,8 @@ class MQTTClient:
 
         cert_dir = self.config.storage.certificate_directory
 
-
-        ssl_ctx = ssl.create_default_context(cafile= cert_dir / "root-ca.crt")
-        ssl_ctx.load_cert_chain(certfile= cert_dir / "device.crt", keyfile= cert_dir / "device.key")
+        ssl_ctx = ssl.create_default_context(cafile=cert_dir / "root-ca.crt")
+        ssl_ctx.load_cert_chain(certfile=cert_dir / "device.crt", keyfile=cert_dir / "device.key")
         ssl_ctx.set_alpn_protocols(["x-amzn-mqtt-ca"])
         client.tls_set_context(ssl_ctx)
 
@@ -45,24 +43,12 @@ class MQTTClient:
 
     def connect(self):
         self.client.connect(self.mqtt_config.endpoint, self.mqtt_config.port, keepalive=60)
-
         self.client.loop_start()
-        time.sleep(2)
 
     def close(self):
 
         self.client.loop_stop()
         self.client.disconnect()
-
-
-
-    def send_keepalive(self):
-        payload = json.dumps({"duration": 180, "publish": 1})
-        TOPIC_GR = f"aw/{self.device.account_id}/gr/{self.device.udn}"
-        self.client.publish(TOPIC_GR, payload, qos=1)
-        print(f"[→] Keepalive → {TOPIC_GR}")
-
-
 
     def make_payload(self, href, method, body):
         return json.dumps({
@@ -77,28 +63,24 @@ class MQTTClient:
             }
         }, separators=(',', ':'))
 
-
-
-
     def on_connect_generator(self):
 
         def on_connect(client, userdata, flags, reason_code, properties):
             # Topics
-            print("HERE ")
-            print(self.device.device_uuid)
+            debug(self.device.device_uuid)
             TOPIC_U = f"aw/{self.device.account_id}/u/{self.device.device_uuid}"
             TOPIC_D = f"aw/{self.device.account_id}/d"
             if reason_code == 0:
-                print("[*] Connected to AWS IoT")
+                info("[*] Connected to AWS IoT")
 
                 client.subscribe(TOPIC_U, qos=1)
                 client.subscribe(TOPIC_D, qos=1)
-
-                print(f"[*] Subscribed to {TOPIC_U} and {TOPIC_D}")
-                self.send_keepalive()
+                debug(f"[*] Subscribed to {TOPIC_U} and {TOPIC_D}")
             else:
-                print(f"[!] Connection failed, code {reason_code}")
+                info(f"[!] Connection failed, code {reason_code}")
+
         return on_connect
+
 
 def on_message(client, userdata, msg):
     topic = msg.topic
