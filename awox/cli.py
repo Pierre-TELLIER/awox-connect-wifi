@@ -1,3 +1,4 @@
+import argparse
 from logging import error, debug
 
 from awox.config import load_config
@@ -5,6 +6,19 @@ from awox.controls.light import Light
 from awox.mqtt.client import MQTTClient
 from awox.provisioning.provisioner import Provisioner
 from awox.state import load_state
+
+parser = argparse.ArgumentParser(
+    prog='Awox CLI',
+    description='Control your AWOX smart wifi devices.')
+parser.add_argument('-d', '--device',
+                    help="Set selected device ID eg. L4HActuator_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+parser.add_argument('-b', '--brightness', help="0-100", type=int)
+parser.add_argument('-t', '--temperature', help="0-100", type=int)
+parser.add_argument('-c', '--color', help="'<r>,<g>,<b>' with r, g and b between 0 and 255")
+parser.add_argument('--on', action="store_true", help="Turn on")
+parser.add_argument('--off', action="store_true", help="Turn off")
+
+args = parser.parse_args()
 
 
 def select_device(state):
@@ -27,15 +41,7 @@ def select_device(state):
             error("Invalid selection")
 
 
-def main():
-    config = load_config()
-    state = load_state(config.storage.state_file)
-
-    if not state.provisioned:
-        debug("Device is not provisioned.")
-        provisioner = Provisioner(config, state)
-        state = provisioner.provision()
-
+def interactive_mode(config, state):
     device_id, device_state = select_device(state)
 
     # For now, all L4HActuator devices are lights.
@@ -102,6 +108,62 @@ def main():
         raise RuntimeError(
             f"Unsupported device type: {device_id}"
         )
+
+
+def non_interactive_mode(config, state):
+    device_id = args.device
+    device_state = [x[1] for x in state.devices.items() if x[0] == device_id]
+
+    if len(device_state) == 0:
+        error("Device not found")
+        error(f"available devices: {', '.join(state.devices)}")
+        exit(1)
+    elif len(device_state) != 1:
+        error("Multiple devices found with this definition. Configuration error")
+        exit(1)
+
+    device_state = device_state[0]
+    mqtt = MQTTClient(
+        config,
+        device_state,
+    )
+    mqtt.connect()
+    light = Light(
+        mqtt=mqtt,
+        device_id=device_id,
+        device=device_state,
+    )
+    if args.off:
+        light.turn_off()
+    elif args.on:
+        light.turn_on()
+
+    if args.brightness:
+        light.set_brightness(args.brightness)
+
+    if args.temperature:
+        light.set_temperature(args.temperature)
+
+    if args.color:
+        r, g, b = args.color.split(",")
+        light.set_color(int(r), int(g), int(b))
+
+    mqtt.close()
+
+
+def main():
+    config = load_config()
+    state = load_state(config.storage.state_file)
+
+    if not state.provisioned:
+        debug("Device is not provisioned.")
+        provisioner = Provisioner(config, state)
+        state = provisioner.provision()
+
+    if args.device:
+        non_interactive_mode(config, state)
+    else:
+        interactive_mode(config, state)
 
 
 if __name__ == "__main__":
