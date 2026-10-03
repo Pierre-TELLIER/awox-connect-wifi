@@ -3,8 +3,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
+from dotenv import load_dotenv
+
 SRC_DIR = Path(__file__).resolve().parent.parent
-CONFIG_PATH = SRC_DIR / "config" / "config.yaml"
+CONFIG_FOLDER = SRC_DIR / "config"
+CONFIG_PATH = CONFIG_FOLDER / "config.yaml"
+
+load_dotenv(CONFIG_FOLDER / ".env")
+
 
 @dataclass
 class AwoxConfig:
@@ -18,17 +24,18 @@ class MqttConfig:
     endpoint: str
     port: int
 
+
 @dataclass
 class StorageConfig:
     state_file: Path
     certificate_directory: Path
+
 
 @dataclass
 class AppConfig:
     awox: AwoxConfig
     mqtt: MqttConfig
     storage: StorageConfig
-
 
 
 def resolve_config_path(value: str) -> Path:
@@ -41,14 +48,20 @@ def resolve_config_path(value: str) -> Path:
 
 
 def load_config() -> AppConfig:
-
     with CONFIG_PATH.open("r") as f:
         data = yaml.safe_load(f)
 
+    username = os.getenv("AWOX_USERNAME")
+    password = os.getenv("AWOX_PASSWORD")
+
+    if not username or not password or username == "awox@email.org":
+        print(f"awox_username: {username}, awox_password: {password}")
+        raise ValueError("AWOX_USERNAME and AWOX_PASSWORD are required. Edit config/.env to save them.")
+
     return AppConfig(
         awox=AwoxConfig(
-            username=data["awox"]["username"],
-            password=data["awox"]["password"],
+            username=username,
+            password=password,
             target_device_name=data["awox"]["target_device_name"],
         ),
         mqtt=MqttConfig(

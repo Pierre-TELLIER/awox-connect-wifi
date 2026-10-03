@@ -1,8 +1,7 @@
 awox:
-  username: "awox email"
-  password: "awox password"
   target_device_name: "device name (leave empty if unknown)"
 
+# This endpoint is derived from the Android application. It should be the same for everyone.
 mqtt:
   endpoint: "a3n0qz5q2o66io.iot.us-east-1.amazonaws.com"
   port: 443
