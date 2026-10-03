@@ -55,7 +55,6 @@ def load_config() -> AppConfig:
     password = os.getenv("AWOX_PASSWORD")
 
     if not username or not password or username == "awox@email.org":
-        print(f"awox_username: {username}, awox_password: {password}")
         raise ValueError("AWOX_USERNAME and AWOX_PASSWORD are required. Edit config/.env to save them.")
 
     return AppConfig(

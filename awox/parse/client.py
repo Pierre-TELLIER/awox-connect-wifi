@@ -12,7 +12,7 @@ AWOX_CONNECT_CLIENT_KEY = getenv("AWOX_CONNECT_CLIENT_KEY")
 
 class ParseClient:
 
-    def __init__(self, username: str, password: str, session: requests.Session, installation_id: str = None):
+    def __init__(self, username: str, password: str, session: requests.Session, installation_id: str | None = None):
         self._username = username
         self._password = password
 

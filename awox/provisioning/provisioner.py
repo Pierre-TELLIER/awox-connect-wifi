@@ -1,4 +1,5 @@
 import uuid
+from logging import info, debug
 
 import requests
 from cryptography import x509
@@ -49,9 +50,9 @@ def generate_keypair_and_csr() -> tuple[str, str]:
 
 class Provisioner:
     def __init__(
-        self,
-        config: AppConfig,
-        state: AppState,
+            self,
+            config: AppConfig,
+            state: AppState,
     ):
         self.config = config
         self.state = state
@@ -59,19 +60,19 @@ class Provisioner:
 
     def provision(self) -> AppState:
         if self.state.provisioned:
-            print("Already provisioned.")
+            info("Already provisioned.")
             return self.state
         username = self.config.awox.username
         password = self.config.awox.password
 
-        print("[1/5] Parse login...")
+        info("[1/5] Parse login...")
         parse_client = ParseClient(
             username,
             password,
             self.session,
         )
 
-        print("[2/5] Fetching devices...")
+        info("[2/5] Fetching devices...")
         devices = parse_client.devices()
 
         target_device_name = self.config.awox.target_device_name
@@ -98,21 +99,21 @@ class Provisioner:
 
         account_id = target["owner"]["objectId"]
         bridge_gateware_id = (
-            "gw"
-            + target["macAddress"].replace(":", "").upper()
+                "gw"
+                + target["macAddress"].replace(":", "").upper()
         )
         device_id = f"{target['provider']}_{target['uuid']}"
 
-        print(f"      account={account_id}")
-        print(
+        debug(f"      account={account_id}")
+        debug(
             f"      device={target['friendlyName']} "
             f"device_id={device_id}"
         )
-        print(
+        debug(
             f"      bridge_gateware_id={bridge_gateware_id}"
         )
 
-        print("[3/5] Exchanging Parse session for JWT + l4h cookie...")
+        info("[3/5] Exchanging Parse session for JWT + l4h cookie...")
 
         api_client = ApiClient(self.session)
 
@@ -122,12 +123,12 @@ class Provisioner:
 
         jwt_token = auth["jwtToken"]
 
-        print(
+        info(
             f"      userId={auth.get('userId')} "
             f"account={auth.get('account')}"
         )
 
-        print(
+        info(
             "[4/5] Generating our own keypair + CSR, "
             "provisioning a new AWS IoT identity..."
         )
@@ -142,7 +143,7 @@ class Provisioner:
             csr_pem,
         )
 
-        print("[5/5] Generating our own UDN and saving everything...")
+        info("[5/5] Generating our own UDN and saving everything...")
 
         my_udn = str(uuid.uuid4())
 
@@ -173,4 +174,3 @@ class Provisioner:
         )
 
         return self.state
-

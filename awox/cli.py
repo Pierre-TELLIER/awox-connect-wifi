@@ -1,3 +1,5 @@
+from logging import error, debug
+
 from awox.config import load_config
 from awox.controls.light import Light
 from awox.mqtt.client import MQTTClient
@@ -22,7 +24,7 @@ def select_device(state):
             device_id, device = devices[choice - 1]
             return device_id, device
         except (ValueError, IndexError):
-            print("Invalid selection")
+            error("Invalid selection")
 
 
 def main():
@@ -30,7 +32,7 @@ def main():
     state = load_state(config.storage.state_file)
 
     if not state.provisioned:
-        print("Device is not provisioned.")
+        debug("Device is not provisioned.")
         provisioner = Provisioner(config, state)
         state = provisioner.provision()
 

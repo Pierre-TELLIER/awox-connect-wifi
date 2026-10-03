@@ -1,7 +1,7 @@
 import datetime
 import json
 import ssl
-from logging import debug, info
+from logging import debug, info, error
 
 import paho.mqtt.client as mqtt
 
@@ -93,8 +93,8 @@ def on_message(client, userdata, msg):
             f"{'...' if len(payload) > 200 else ''}"
         )
     except Exception as e:
-        print(f"[←] {topic}: {msg.payload.hex()} (decode err: {e})")
+        error(f"[←] {topic}: {msg.payload.hex()} (decode err: {e})")
 
 
 def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
-    print(f"[!] Disconnected (reason={reason_code})")
+    info(f"[!] Disconnected (reason={reason_code})")

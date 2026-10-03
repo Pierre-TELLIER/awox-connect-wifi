@@ -8,8 +8,7 @@ venv/
 .env
 .idea
 
-config/config.yaml
-config/state.yaml
+config/*.yaml
 
 *.egg-info/
 dist/
