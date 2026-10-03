@@ -1,5 +1,0 @@
-pyyaml
-requests
-cryptography
-paho-mqtt
-python-dotenv

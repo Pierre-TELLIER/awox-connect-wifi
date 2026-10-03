@@ -207,3 +207,10 @@ def save_certificates(
     (certificate_dir / "device.key").write_text(device_key)
     (certificate_dir / "ca.crt").write_text(ca_cert)
     (certificate_dir / "root-ca.crt").write_text(root_ca)
+
+
+def clear_state(path) -> None:
+    """Clear the application state."""
+    with path.open("w") as f:
+        f.write("")
+        

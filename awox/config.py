@@ -51,7 +51,12 @@ def load_config() -> AppConfig:
     with CONFIG_PATH.open("r") as f:
         data = yaml.safe_load(f)
 
-    match data['logging']["level"].lower():
+    try:
+        loglevel = data["logging"]["level"]
+    except KeyError:
+        loglevel = "Warning"
+
+    match loglevel.lower():
         case "debug":
             logging.basicConfig(level=logging.DEBUG)
         case "info":
@@ -64,6 +69,9 @@ def load_config() -> AppConfig:
             logging.basicConfig(level=logging.FATAL)
         case "critical":
             logging.basicConfig(level=logging.CRITICAL)
+        case _:
+            logging.basicConfig(level=logging.WARNING)
+            logging.warning("Logging level value not recognized")
 
     username = os.getenv("AWOX_USERNAME")
     password = os.getenv("AWOX_PASSWORD")

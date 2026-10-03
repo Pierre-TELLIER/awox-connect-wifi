@@ -9,4 +9,4 @@ storage:
   certificate_directory: "../certs"
 
 logging:
-  level: "DEBUG"
+  level: "INFO"

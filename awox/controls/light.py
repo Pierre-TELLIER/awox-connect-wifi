@@ -21,7 +21,7 @@ class Light:
             f"/{self.device_config.udn}"
         )
 
-    def put(self, payload) -> None:
+    def send_command(self, payload) -> None:
         self.mqtt.client.publish(
             self.command_topic,
             payload,
@@ -41,7 +41,7 @@ class Light:
             {"value": 1 if state else 0},
         )
 
-        self.put(payload)
+        self.send_command(payload)
 
     def set_brightness(self, level: int) -> None:
         if not 0 <= level <= 100:
@@ -53,7 +53,7 @@ class Light:
             {"dimmingSetting": level},
         )
 
-        self.put(payload)
+        self.send_command(payload)
 
     def set_color(self, r: int, g: int, b: int) -> None:
         for value in (r, g, b):
@@ -66,7 +66,7 @@ class Light:
             {"rgbValue": [r, g, b]},
         )
 
-        self.put(payload)
+        self.send_command(payload)
 
     def set_temperature(self, temperature: int) -> None:
         if not 0 <= temperature <= 100:
@@ -78,4 +78,4 @@ class Light:
             {"temperatureSetting": temperature},
         )
 
-        self.put(payload)
+        self.send_command(payload)

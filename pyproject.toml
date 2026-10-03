@@ -4,17 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "awox"
-version = "0.3.0"
-description = "AWOX API control"
+version = "0.4.0"
+description = "Control AwoX smart wifi devices"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "requests>=2.31",
     "PyYAML>=6.0",
     "paho-mqtt>=2.0",
-    "cryptography>= 50.0.0",
+    "cryptography>= 42.0.0",
     "python-dotenv>= 1.2.4"
 ]
+authors = [
+    { name = "Pierre Tellier", email = "awox@piair.dev" },
+]
+license = "MIT"
 
 [project.urls]
 Homepage = "https://github.com/Pierre-TELLIER/awox-connect-wifi"

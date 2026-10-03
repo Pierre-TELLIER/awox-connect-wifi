@@ -84,7 +84,7 @@ class MQTTClient:
         payload = json.dumps({"duration": 180, "publish": 1})
         TOPIC_GR = f"aw/{self.device_config.account_id}/gr/{self.device_config.udn}"
         self.client.publish(TOPIC_GR, payload, qos=1)
-        print(f"[→] Keepalive → {TOPIC_GR}")
+        debug(f"[→] Keepalive → {TOPIC_GR}")
 
     def make_payload(self, href, method, body):
         return json.dumps({
@@ -118,8 +118,8 @@ class MQTTClient:
                 client.subscribe(TOPIC_D, qos=1)
                 # client.subscribe(ALL_TOPIC_DEBUG, qos=1)
 
-                debug(f"[*] Subscribed to {TOPIC_U},{TOPIC_D}, {TOPIC_R}")
-                self.send_keepalive()  # The keepalive is used to get the state of the device.
+                debug(f"[*] Subscribed to {TOPIC_U},{TOPIC_D}")
+                self.send_keepalive()  # The keepalive is used to get the state of the device. It isn't useful to keep the connection alive
 
             else:
                 info(f"[!] Connection failed, code {reason_code}")
@@ -132,14 +132,13 @@ class MQTTClient:
             topic = msg.topic
             try:
                 payload = msg.payload.decode("utf-8")
-                if topic == 'aw/bkYXNUb44M/u/gwBEDDC2BBD988':
+                if topic == f'aw/{self.device_config.account_id}/u/{self.device_config.bridge_gateware_id}':
                     parse_light_state(payload, self.device_state)
                 else:
-                    print(
+                    debug(
                         f"[←] {topic}: "
-                        f"{payload}"
-                        # f"{payload[:200]}"
-                        # f"{'...' if len(payload) > 200 else ''}"
+                        f"{payload[:200]}"
+                        f"{'...' if len(payload) > 200 else ''}"
                     )
             except Exception as e:
                 error(f"[←] {topic}: {msg.payload.hex()} (decode err: {e})")

@@ -5,20 +5,7 @@ from awox.config import load_config
 from awox.controls.light import Light
 from awox.mqtt.client import MQTTClient
 from awox.provisioning.provisioner import Provisioner
-from awox.state import load_state
-
-parser = argparse.ArgumentParser(
-    prog='Awox CLI',
-    description='Control your AWOX smart wifi devices.')
-parser.add_argument('-d', '--device',
-                    help="Set selected device ID eg. L4HActuator_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
-parser.add_argument('-b', '--brightness', help="0-100", type=int)
-parser.add_argument('-t', '--temperature', help="0-100", type=int)
-parser.add_argument('-c', '--color', help="'<r>,<g>,<b>' with r, g and b between 0 and 255")
-parser.add_argument('--on', action="store_true", help="Turn on")
-parser.add_argument('--off', action="store_true", help="Turn off")
-
-args = parser.parse_args()
+from awox.state import load_state, clear_state
 
 
 def select_device(state):
@@ -35,6 +22,8 @@ def select_device(state):
     while True:
         try:
             choice = int(input("\nSelect device: "))
+            if choice <= 0:
+                raise ValueError
             device_id, device = devices[choice - 1]
             return device_id, device
         except (ValueError, IndexError):
@@ -42,20 +31,20 @@ def select_device(state):
 
 
 def interactive_mode(config, state):
-    device_id, device_state = select_device(state)
+    device_id, device = select_device(state)
 
     # For now, all L4HActuator devices are lights.
     if device_id.startswith("L4HActuator_"):
 
         mqtt = MQTTClient(
             config,
-            device_state,
+            device,
         )
         mqtt.connect()
         light = Light(
             mqtt=mqtt,
             device_id=device_id,
-            device=device_state,
+            device=device,
         )
 
         print(
@@ -93,7 +82,7 @@ def interactive_mode(config, state):
                 elif cmd[0] in ("quit", "exit", "q"):
                     break
                 elif cmd[0] == "showstate":
-                    print(device_state)
+                    print(device.state)
                 else:
                     print("Unknown command")
 
@@ -119,9 +108,6 @@ def non_interactive_mode(config, state):
         error("Device not found")
         error(f"available devices: {', '.join(state.devices)}")
         exit(1)
-    elif len(device_state) != 1:
-        error("Multiple devices found with this definition. Configuration error")
-        exit(1)
 
     device_state = device_state[0]
     mqtt = MQTTClient(
@@ -139,10 +125,10 @@ def non_interactive_mode(config, state):
     elif args.on:
         light.turn_on()
 
-    if args.brightness:
+    if args.brightness is not None:
         light.set_brightness(args.brightness)
 
-    if args.temperature:
+    if args.temperature is not None:
         light.set_temperature(args.temperature)
 
     if args.color:
@@ -154,6 +140,9 @@ def non_interactive_mode(config, state):
 
 def main():
     config = load_config()
+    if args.reprovision:
+        clear_state(config.storage.state_file)
+
     state = load_state(config.storage.state_file)
 
     if not state.provisioned:
@@ -168,4 +157,21 @@ def main():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog='Awox CLI',
+        description='Control your AWOX smart wifi devices.')
+    parser.add_argument('-d', '--device',
+                        help="Set selected device ID eg. L4HActuator_xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx")
+    parser.add_argument('-b', '--brightness', help="0-100", type=int)
+    parser.add_argument('-t', '--temperature', help="0-100", type=int)
+    parser.add_argument('-c', '--color', help="'<r>,<g>,<b>' with r, g and b between 0 and 255")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--on', action="store_true", help="Turn on")
+    group.add_argument('--off', action="store_true", help="Turn off")
+    parser.add_argument('--reprovision', action="store_true", help="restart provisioning")
+    args = parser.parse_args()
+
+
+
+
     main()

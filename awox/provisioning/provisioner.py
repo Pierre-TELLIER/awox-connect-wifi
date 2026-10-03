@@ -69,14 +69,14 @@ class Provisioner:
         key_pem, csr_pem = generate_keypair_and_csr()
         gateware = f"Gateware_{uuid.uuid4()}"
 
-        info("[1/5] Parse login...")
+        info("[1/4] Parse login...")
         parse_client = ParseClient(
             username,
             password,
             self.session,
         )
 
-        info("[2/5] Exchanging Parse session for JWT + l4h cookie + certificates")
+        info("[2/4] Exchanging Parse session for JWT + l4h cookie + certificates")
 
         api_client = ApiClient(self.session)
 
@@ -85,6 +85,12 @@ class Provisioner:
         )
 
         jwt_token = auth["jwtToken"]
+
+        info(
+            "[3/4] Generating our own keypair + CSR, "
+            "provisioning a new AWS IoT identity..."
+        )
+
         device_cert_prov = api_client.provision_device_certificate(
             jwt_token,
             gateware,
@@ -98,17 +104,11 @@ class Provisioner:
             ca_cert=device_cert_prov["caCert"],
             root_ca=device_cert_prov["rootCa"],
         )
-        info(
-            f"      userId={auth.get('userId')} "
-            f"account={auth.get('account')}"
-        )
 
-        info(
-            "[4/5] Generating our own keypair + CSR, "
-            "provisioning a new AWS IoT identity..."
-        )
 
-        info("[3/5] Fetching devices...")
+
+
+        info("[4/4] Fetching devices...")
 
         devices = parse_client.devices()
         compatible_devices = [
