@@ -52,7 +52,7 @@ def main():
 
         print(
             "\nCommands: "
-            "on | off | bright <0-100> | temp <0-100>"
+            "on | off | bright <0-100> | temp <0-100> | "
             "color <r> <g> <b> | quit"
         )
 
