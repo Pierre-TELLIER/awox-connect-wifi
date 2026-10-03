@@ -86,7 +86,7 @@ def interactive_mode(config, state):
                 else:
                     print("Unknown command")
 
-            except KeyboardInterrupt:
+            except KeyboardInterrupt or EOFError:
                 break
 
             except Exception as e:
@@ -100,7 +100,7 @@ def interactive_mode(config, state):
         )
 
 
-def non_interactive_mode(config, state):
+def non_interactive_mode(config, state, args):
     device_id = args.device
     device_state = [x[1] for x in state.devices.items() if x[0] == device_id]
 
@@ -138,25 +138,7 @@ def non_interactive_mode(config, state):
     mqtt.close()
 
 
-def main():
-    config = load_config()
-    if args.reprovision:
-        clear_state(config.storage.state_file)
-
-    state = load_state(config.storage.state_file)
-
-    if not state.provisioned:
-        debug("Device is not provisioned.")
-        provisioner = Provisioner(config, state)
-        state = provisioner.provision()
-
-    if args.device:
-        non_interactive_mode(config, state)
-    else:
-        interactive_mode(config, state)
-
-
-if __name__ == "__main__":
+def build_parser():
     parser = argparse.ArgumentParser(
         prog='Awox CLI',
         description='Control your AWOX smart wifi devices.')
@@ -169,9 +151,28 @@ if __name__ == "__main__":
     group.add_argument('--on', action="store_true", help="Turn on")
     group.add_argument('--off', action="store_true", help="Turn off")
     parser.add_argument('--reprovision', action="store_true", help="restart provisioning")
-    args = parser.parse_args()
+    return parser
 
 
+def main(args=None):
+    if args is None:
+        args = build_parser().parse_args()
+    config = load_config()
+    if args.reprovision:
+        clear_state(config.storage.state_file)
+
+    state = load_state(config.storage.state_file)
+
+    if not state.provisioned:
+        debug("Device is not provisioned.")
+        provisioner = Provisioner(config, state)
+        state = provisioner.provision()
+
+    if args.device:
+        non_interactive_mode(config, state, args)
+    else:
+        interactive_mode(config, state)
 
 
+if __name__ == "__main__":
     main()

@@ -2,7 +2,7 @@
 
 ## Device
 
-All test were made on the light EgloBulb+
+All tests were made on the light EgloBulb+
 
 The phone used was a Samsung galaxy A5 2017 (`SM-A520F`), rooted with `Magisk` on `LineageOS 18.1, Android 11`
 
@@ -30,7 +30,7 @@ The cert files are present in
 /data/data/com.awox.smart.control/files/SSLData/Gateware/
 ```
 
-On first app lauch, the files ca.pem, client-cert.pem and client-key.pem are generated.
+On first app launch, the files ca.pem, client-cert.pem and client-key.pem are generated.
 
 ## Scripts
 

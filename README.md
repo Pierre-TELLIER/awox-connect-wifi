@@ -1,9 +1,6 @@
-# awox-smart-control
+# awox-connect-wifi
 
 Python application to control AwoX Connect Wi-Fi smart devices.
-
-This project is based on the work from fsaris/home-assistant-awox
-, which was particularly useful for the initial authentication implementation.
 
 > [!WARNING]
 > ## Disclaimer
@@ -43,7 +40,7 @@ Configuration is loaded from environment variables.
 Start by copying the example configuration:
 
 ```
-cp .env.example .env
+cp config/.env.example config/.env
 ```
 
 Then edit .env and provide the required values.
@@ -57,6 +54,18 @@ The application is launched as a Python module:
 
 ```
 python3 -m awox.cli
+```
+
+There are multiple options
+
+```
+-d, --device DEVICE       Set selected device ID (you can get it by running without args). It is required for other commands to work
+--on                      Turn the device on 
+--off                     Turn the device off
+-b, --brightness 0-100    Set brightness
+-t, --temperature 0-100   Set color temperature
+-c, --color R,G,B         Set RGB color
+--reprovision             Restart device provisioning
 ```
 
 The CLI handles the device connection and communication with the AwoX service.
