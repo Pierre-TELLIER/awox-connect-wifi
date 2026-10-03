@@ -7,15 +7,16 @@ name = "awox"
 version = "0.3.0"
 description = "AWOX API control"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "requests>=2.31",
     "PyYAML>=6.0",
     "paho-mqtt>=2.0",
+    "cryptography>= 50.0.0",
 ]
 
 [project.urls]
-Homepage = "https://forge.piair.dev/Piair/awox-smart-control"
+Homepage = "https://github.com/Pierre-TELLIER/awox-connect-wifi"
 
 [project.scripts]
 awox = "awox.cli:main"
