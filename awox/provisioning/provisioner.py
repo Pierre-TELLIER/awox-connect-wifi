@@ -1,5 +1,5 @@
 import uuid
-from logging import info, debug
+from logging import info, error
 
 import requests
 from cryptography import x509
@@ -62,8 +62,12 @@ class Provisioner:
         if self.state.provisioned:
             info("Already provisioned.")
             return self.state
+
         username = self.config.awox.username
         password = self.config.awox.password
+        my_udn = str(uuid.uuid4())
+        key_pem, csr_pem = generate_keypair_and_csr()
+        gateware = f"Gateware_{uuid.uuid4()}"
 
         info("[1/5] Parse login...")
         parse_client = ParseClient(
@@ -72,48 +76,7 @@ class Provisioner:
             self.session,
         )
 
-        info("[2/5] Fetching devices...")
-        devices = parse_client.devices()
-
-        target_device_name = self.config.awox.target_device_name
-
-        target = next(
-            (
-                device
-                for device in devices
-                if device.get("friendlyName") == target_device_name
-            ),
-            None,
-        )
-
-        if target is None:
-            available = [
-                device.get("friendlyName")
-                for device in devices
-            ]
-
-            raise RuntimeError(
-                f"Device '{target_device_name}' not found. "
-                f"Available: {available}"
-            )
-
-        account_id = target["owner"]["objectId"]
-        bridge_gateware_id = (
-                "gw"
-                + target["macAddress"].replace(":", "").upper()
-        )
-        device_id = f"{target['provider']}_{target['uuid']}"
-
-        debug(f"      account={account_id}")
-        debug(
-            f"      device={target['friendlyName']} "
-            f"device_id={device_id}"
-        )
-        debug(
-            f"      bridge_gateware_id={bridge_gateware_id}"
-        )
-
-        info("[3/5] Exchanging Parse session for JWT + l4h cookie...")
+        info("[2/5] Exchanging Parse session for JWT + l4h cookie + certificates")
 
         api_client = ApiClient(self.session)
 
@@ -122,7 +85,19 @@ class Provisioner:
         )
 
         jwt_token = auth["jwtToken"]
+        device_cert_prov = api_client.provision_device_certificate(
+            jwt_token,
+            gateware,
+            csr_pem,
+        )
 
+        save_certificates(
+            self.config.storage.certificate_directory,
+            device_cert=device_cert_prov["deviceCert"],
+            device_key=key_pem,
+            ca_cert=device_cert_prov["caCert"],
+            root_ca=device_cert_prov["rootCa"],
+        )
         info(
             f"      userId={auth.get('userId')} "
             f"account={auth.get('account')}"
@@ -133,39 +108,37 @@ class Provisioner:
             "provisioning a new AWS IoT identity..."
         )
 
-        my_device_uuid = f"Gateware_{uuid.uuid4()}"
+        info("[3/5] Fetching devices...")
 
-        key_pem, csr_pem = generate_keypair_and_csr()
+        devices = parse_client.devices()
+        compatible_devices = [
+            device for device in devices
+            if ".wifi.light" in device.get("type")
+        ]
 
-        result = api_client.provision_device_certificate(
-            jwt_token,
-            my_device_uuid,
-            csr_pem,
-        )
+        if len(compatible_devices) == 0:
+            error(f"No devices found. {devices}")
+            exit(1)
 
-        info("[5/5] Generating our own UDN and saving everything...")
+        for target in compatible_devices:
+            account_id = target["owner"]["objectId"]
+            bridge_gateware_id = f"gw{target['macAddress'].replace(':', '').upper()}"
+            device_id = f"{target['provider']}_{target['uuid']}"
+            friendly_name = target.get("friendlyName")
 
-        my_udn = str(uuid.uuid4())
+            device_state = DeviceState(
+                friendly_name=friendly_name,
+                account_id=account_id,
+                bridge_gateware_id=bridge_gateware_id,
+                device_id=device_id,
+                device_uuid=gateware,
+                udn=my_udn,
+                fingerprint=device_cert_prov["fingerprint"],
+                mqtt_endpoint=device_cert_prov["mqttEndPoint"],
+            )
 
-        save_certificates(
-            self.config.storage.certificate_directory,
-            device_cert=result["deviceCert"],
-            device_key=key_pem,
-            ca_cert=result["caCert"],
-            root_ca=result["rootCa"],
-        )
+            self.state.devices[device_id] = device_state
 
-        device_state = DeviceState(
-            account_id=account_id,
-            bridge_gateware_id=bridge_gateware_id,
-            device_id=device_id,
-            device_uuid=my_device_uuid,
-            udn=my_udn,
-            fingerprint=result["fingerprint"],
-            mqtt_endpoint=result["mqttEndPoint"],
-        )
-
-        self.state.devices[device_id] = device_state
         self.state.provisioned = True
 
         save_state(

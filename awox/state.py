@@ -14,6 +14,7 @@ class CertificateState:
 
 @dataclass
 class DeviceState:
+    friendly_name: str | None = None
     account_id: str | None = None
     bridge_gateware_id: str | None = None
     device_id: str | None = None
@@ -84,6 +85,7 @@ def save_state(path: Path, state: AppState) -> None:
         ),
         "devices": {
             device_id: {
+                "friendly_name": device.friendly_name,
                 "account_id": device.account_id,
                 "bridge_gateware_id": device.bridge_gateware_id,
                 "device_id": device.device_id,
@@ -100,14 +102,12 @@ def save_state(path: Path, state: AppState) -> None:
         yaml.safe_dump(data, f, sort_keys=False)
 
 
-
-
 def save_certificates(
-    certificate_dir: Path,
-    device_cert: str,
-    device_key: str,
-    ca_cert: str,
-    root_ca: str,
+        certificate_dir: Path,
+        device_cert: str,
+        device_key: str,
+        ca_cert: str,
+        root_ca: str,
 ) -> None:
     """Write provisioned certificates to the configured certificate directory."""
 

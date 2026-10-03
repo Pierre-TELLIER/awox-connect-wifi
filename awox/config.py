@@ -17,7 +17,6 @@ load_dotenv(CONFIG_FOLDER / ".env")
 class AwoxConfig:
     username: str
     password: str
-    target_device_name: str
 
 
 @dataclass
@@ -76,7 +75,6 @@ def load_config() -> AppConfig:
         awox=AwoxConfig(
             username=username,
             password=password,
-            target_device_name=data["awox"]["target_device_name"],
         ),
         mqtt=MqttConfig(
             endpoint=data["mqtt"]["endpoint"],
