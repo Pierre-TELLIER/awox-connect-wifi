@@ -10,7 +10,7 @@ from cryptography.x509.oid import NameOID
 from awox.api.client import ApiClient
 from awox.config import AppConfig
 from awox.parse.client import ParseClient
-from awox.state import AppState, DeviceState, save_certificates, save_state
+from awox.state import AppState, DeviceConfig, save_certificates, save_state, Device, DeviceState
 
 
 def generate_keypair_and_csr() -> tuple[str, str]:
@@ -126,7 +126,7 @@ class Provisioner:
             device_id = f"{target['provider']}_{target['uuid']}"
             friendly_name = target.get("friendlyName")
 
-            device_state = DeviceState(
+            device_config = DeviceConfig(
                 friendly_name=friendly_name,
                 account_id=account_id,
                 bridge_gateware_id=bridge_gateware_id,
@@ -137,7 +137,7 @@ class Provisioner:
                 mqtt_endpoint=device_cert_prov["mqttEndPoint"],
             )
 
-            self.state.devices[device_id] = device_state
+            self.state.devices[device_id] = Device(config=device_config, state=DeviceState())
 
         self.state.provisioned = True
 

@@ -1,5 +1,5 @@
 from awox.mqtt.client import MQTTClient
-from awox.state import DeviceState
+from awox.state import Device
 
 
 class Light:
@@ -7,18 +7,18 @@ class Light:
             self,
             mqtt: MQTTClient,
             device_id: str,
-            device: DeviceState,
+            device: Device,
     ):
         self.mqtt = mqtt
         self.device_id = device_id
-        self.device = device
+        self.device_config = device.config
 
     @property
     def command_topic(self) -> str:
         return (
-            f"aw/{self.device.account_id}"
-            f"/r/{self.device.bridge_gateware_id}"
-            f"/{self.device.udn}"
+            f"aw/{self.device_config.account_id}"
+            f"/r/{self.device_config.bridge_gateware_id}"
+            f"/{self.device_config.udn}"
         )
 
     def put(self, payload) -> None:

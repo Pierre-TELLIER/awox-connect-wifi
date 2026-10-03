@@ -30,7 +30,7 @@ def select_device(state):
     print("\nAvailable devices:")
 
     for index, (device_id, device) in enumerate(devices, start=1):
-        print(f"  {index}. {device.friendly_name} ({device_id})")
+        print(f"  {index}. {device.config.friendly_name} ({device_id})")
 
     while True:
         try:
@@ -61,7 +61,7 @@ def interactive_mode(config, state):
         print(
             "\nCommands: "
             "on | off | bright <0-100> | temp <0-100> | "
-            "color <r> <g> <b> | quit"
+            "color <r> <g> <b> | showstate | quit"
         )
 
         while True:
@@ -92,7 +92,8 @@ def interactive_mode(config, state):
 
                 elif cmd[0] in ("quit", "exit", "q"):
                     break
-
+                elif cmd[0] == "showstate":
+                    print(device_state)
                 else:
                     print("Unknown command")
 

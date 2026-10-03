@@ -13,7 +13,7 @@ class CertificateState:
 
 
 @dataclass
-class DeviceState:
+class DeviceConfig:
     friendly_name: str | None = None
     account_id: str | None = None
     bridge_gateware_id: str | None = None
@@ -25,9 +25,25 @@ class DeviceState:
 
 
 @dataclass
+class DeviceState:
+    power: bool | None = None
+    mode: str | None = None
+    brightness: int | None = None
+    temperature: int | None = None
+    rgb: tuple[int, int, int] | None = None
+    connected: bool = False
+
+
+@dataclass
+class Device:
+    config: DeviceConfig | None = None
+    state: DeviceState | None = None
+
+
+@dataclass
 class AppState:
     certificates: CertificateState | None = None
-    devices: dict[str, DeviceState] = field(default_factory=dict)
+    devices: dict[str, Device] = field(default_factory=dict)
     provisioned: bool = False
 
 
@@ -54,10 +70,39 @@ def load_state(path: Path) -> AppState:
             root_ca=Path(certificates_data["root_ca"]),
         )
 
-    devices = {
-        device_id: DeviceState(**device_data)
-        for device_id, device_data in data.get("devices", {}).items()
-    }
+    devices = {}
+
+    for device_id, device_data in data.get("devices", {}).items():
+        config_data = device_data.get("config", {})
+        state_data = device_data.get("state", {})
+
+        config = DeviceConfig(
+            friendly_name=config_data["friendly_name"],
+            account_id=config_data["account_id"],
+            bridge_gateware_id=config_data["bridge_gateware_id"],
+            device_id=config_data["device_id"],
+            device_uuid=config_data["device_uuid"],
+            udn=config_data["udn"],
+            fingerprint=config_data["fingerprint"],
+            mqtt_endpoint=config_data["mqtt_endpoint"],
+        )
+
+        device_state = DeviceState(
+            power=state_data.get("power"),
+            mode=state_data.get("mode"),
+            brightness=state_data.get("brightness"),
+            temperature=state_data.get("temperature"),
+            rgb=(
+                tuple(state_data["rgb"])
+                if state_data.get("rgb") is not None
+                else None
+            ),
+        )
+
+        devices[device_id] = Device(
+            config=config,
+            state=device_state,
+        )
 
     return AppState(
         certificates=certificates,
@@ -85,17 +130,62 @@ def save_state(path: Path, state: AppState) -> None:
         ),
         "devices": {
             device_id: {
-                "friendly_name": device.friendly_name,
-                "account_id": device.account_id,
-                "bridge_gateware_id": device.bridge_gateware_id,
-                "device_id": device.device_id,
-                "device_uuid": device.device_uuid,
-                "udn": device.udn,
-                "fingerprint": device.fingerprint,
-                "mqtt_endpoint": device.mqtt_endpoint,
+                "config": {
+                    "friendly_name": device.config.friendly_name,
+                    "account_id": device.config.account_id,
+                    "bridge_gateware_id": device.config.bridge_gateware_id,
+                    "device_id": device.config.device_id,
+                    "device_uuid": device.config.device_uuid,
+                    "udn": device.config.udn,
+                    "fingerprint": device.config.fingerprint,
+                    "mqtt_endpoint": device.config.mqtt_endpoint,
+                },
+                "state": {
+                    "power": device.state.power,
+                    "mode": device.state.mode,
+                    "brightness": device.state.brightness,
+                    "temperature": device.state.temperature,
+                    "rgb": device.state.rgb,
+                }
+
             }
             for device_id, device in state.devices.items()
         },
+    }
+
+    with path.open("w") as f:
+        yaml.safe_dump(data, f, sort_keys=False)
+
+
+def save_device_state(
+        path: Path,
+        device_id: str,
+        device_state: DeviceState,
+) -> None:
+    """Update only the state of a specific device in the application state file."""
+
+    if not path.exists():
+        raise FileNotFoundError(f"State file does not exist: {path}")
+
+    with path.open("r") as f:
+        data = yaml.safe_load(f) or {}
+
+    devices = data.setdefault("devices", {})
+
+    if device_id not in devices:
+        raise KeyError(f"Device '{device_id}' not found in state file")
+
+    devices[device_id]["state"] = {
+        "power": device_state.power,
+        "mode": device_state.mode,
+        "brightness": device_state.brightness,
+        "temperature": device_state.temperature,
+        "rgb": (
+            list(device_state.rgb)
+            if device_state.rgb is not None
+            else None
+        ),
+        "connected": device_state.connected,
     }
 
     with path.open("w") as f:

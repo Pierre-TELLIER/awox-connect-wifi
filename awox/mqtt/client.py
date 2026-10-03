@@ -6,7 +6,36 @@ from logging import debug, info, error
 import paho.mqtt.client as mqtt
 
 from awox.config import AppConfig
-from awox.state import DeviceState
+from awox.state import DeviceState, Device, save_device_state
+
+
+def parse_light_state(payload, state: DeviceState):
+    if isinstance(payload, bytes):
+        payload = payload.decode("utf-8")
+
+    data = json.loads(payload)
+
+    for resource in data.get("links", []):
+        href = resource.get("href")
+
+        if href == "switch":
+            state.power = bool(resource.get("value"))
+
+        elif href == "lightmode":
+            state.mode = resource.get("lightMode")
+
+        elif href == "lightdimming":
+            state.brightness = int(resource.get("dimmingSetting"))
+
+        elif href == "lighttemperature":
+            state.temperature = int(resource.get("temperatureSetting"))
+
+        elif href == "colorrgb":
+            state.rgb = resource.get("rgbValue")
+
+        state.connected = True
+
+    return state
 
 
 # -- Helpers --
@@ -15,17 +44,18 @@ def iso_ts():
 
 
 class MQTTClient:
-    def __init__(self, config: AppConfig, device: DeviceState):
+    def __init__(self, config: AppConfig, device: Device):
         self.config = config
         self.mqtt_config = config.mqtt
-        self.device = device
+        self.device_config = device.config
+        self.device_state = device.state
         self.client = self.configure_client()
 
     def configure_client(self):
         # AWS IoT on 443 requires ALPN for MQTT
         client = mqtt.Client(
             callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-            client_id=self.device.fingerprint,
+            client_id=self.device_config.fingerprint,
             protocol=mqtt.MQTTv311,
         )
 
@@ -37,8 +67,8 @@ class MQTTClient:
         client.tls_set_context(ssl_ctx)
 
         client.on_connect = self.on_connect_generator()
-        client.on_message = on_message
-        client.on_disconnect = on_disconnect
+        client.on_message = self.on_message_generator()
+        client.on_disconnect = self.on_disconnect_generator()
         return client
 
     def connect(self):
@@ -50,6 +80,12 @@ class MQTTClient:
         self.client.loop_stop()
         self.client.disconnect()
 
+    def send_keepalive(self):
+        payload = json.dumps({"duration": 180, "publish": 1})
+        TOPIC_GR = f"aw/{self.device_config.account_id}/gr/{self.device_config.udn}"
+        self.client.publish(TOPIC_GR, payload, qos=1)
+        print(f"[→] Keepalive → {TOPIC_GR}")
+
     def make_payload(self, href, method, body):
         return json.dumps({
             "h": href,
@@ -57,7 +93,7 @@ class MQTTClient:
             "m": "application/json",
             "b": body,
             "o": {
-                "id": self.device.udn,
+                "id": self.device_config.udn,
                 "r": "u",
                 "t": iso_ts()
             }
@@ -67,34 +103,53 @@ class MQTTClient:
 
         def on_connect(client, userdata, flags, reason_code, properties):
             # Topics
-            debug(self.device.device_uuid)
-            TOPIC_U = f"aw/{self.device.account_id}/u/{self.device.device_uuid}"
-            TOPIC_D = f"aw/{self.device.account_id}/d"
+            debug(self.device_config.device_uuid)
+            TOPIC_U = f"aw/{self.device_config.account_id}/u/{self.device_config.bridge_gateware_id}"
+            TOPIC_D = f"aw/{self.device_config.account_id}/d"
+            # Topic used to get the response of the command.
+            # May be useful if we want to keep a success/failure.
+            TOPIC_R = f"aw/{self.device_config.account_id}/r/{self.device_config.bridge_gateware_id}/#"
+            ALL_TOPIC_DEBUG = f"aw/{self.device_config.account_id}/#"
+
             if reason_code == 0:
                 info("[*] Connected to AWS IoT")
 
                 client.subscribe(TOPIC_U, qos=1)
                 client.subscribe(TOPIC_D, qos=1)
-                debug(f"[*] Subscribed to {TOPIC_U} and {TOPIC_D}")
+                # client.subscribe(ALL_TOPIC_DEBUG, qos=1)
+
+                debug(f"[*] Subscribed to {TOPIC_U},{TOPIC_D}, {TOPIC_R}")
+                self.send_keepalive()  # The keepalive is used to get the state of the device.
+
             else:
                 info(f"[!] Connection failed, code {reason_code}")
 
         return on_connect
 
+    def on_message_generator(self):
 
-def on_message(client, userdata, msg):
-    topic = msg.topic
+        def on_message(client, userdata, msg):
+            topic = msg.topic
+            try:
+                payload = msg.payload.decode("utf-8")
+                if topic == 'aw/bkYXNUb44M/u/gwBEDDC2BBD988':
+                    parse_light_state(payload, self.device_state)
+                else:
+                    print(
+                        f"[←] {topic}: "
+                        f"{payload}"
+                        # f"{payload[:200]}"
+                        # f"{'...' if len(payload) > 200 else ''}"
+                    )
+            except Exception as e:
+                error(f"[←] {topic}: {msg.payload.hex()} (decode err: {e})")
 
-    try:
-        payload = msg.payload.decode("utf-8")
-        print(
-            f"[←] {topic}: "
-            f"{payload[:200]}"
-            f"{'...' if len(payload) > 200 else ''}"
-        )
-    except Exception as e:
-        error(f"[←] {topic}: {msg.payload.hex()} (decode err: {e})")
+        return on_message
 
+    def on_disconnect_generator(self):
+        def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
+            info(f"[!] Disconnected (reason={reason_code})")
+            self.device_state.connected = False
+            save_device_state(self.config.storage.state_file, self.device_config.device_id, self.device_state)
 
-def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
-    info(f"[!] Disconnected (reason={reason_code})")
+        return on_disconnect
