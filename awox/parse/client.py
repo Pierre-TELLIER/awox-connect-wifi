@@ -40,10 +40,11 @@ class ParseClient:
 
         response = self.session.request("POST", AWOX_CONNECT_URL + 'login', headers=headers, data=payload)
         if response.status_code != 200:
+            r1 = response.text
             self.api_url = AWOX_HOME_CONTROL_URL
             response = self.session.request("POST", AWOX_HOME_CONTROL_URL + 'login', headers=headers, data=payload)
             if response.status_code != 200:
-                raise Exception('Login failed - %s' % response.json()['error'])
+                raise Exception('Login failed - %s | %s' % (response.json()['error'], r1))
 
         self._object_id = response.json()['objectId']
         self._session_token = response.json()['sessionToken']
