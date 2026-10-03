@@ -1,3 +1,4 @@
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -50,6 +51,20 @@ def resolve_config_path(value: str) -> Path:
 def load_config() -> AppConfig:
     with CONFIG_PATH.open("r") as f:
         data = yaml.safe_load(f)
+
+    match data['logging']["level"].lower():
+        case "debug":
+            logging.basicConfig(level=logging.DEBUG)
+        case "info":
+            logging.basicConfig(level=logging.INFO)
+        case "warning":
+            logging.basicConfig(level=logging.WARNING)
+        case "error":
+            logging.basicConfig(level=logging.ERROR)
+        case "fatal":
+            logging.basicConfig(level=logging.FATAL)
+        case "critical":
+            logging.basicConfig(level=logging.CRITICAL)
 
     username = os.getenv("AWOX_USERNAME")
     password = os.getenv("AWOX_PASSWORD")
