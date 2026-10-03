@@ -1,12 +1,13 @@
 import json
 import uuid
+from os import getenv
 
 import requests
 
 AWOX_CONNECT_URL = 'https://l4hparse-prod.awox.cloud/parse/'
 AWOX_HOME_CONTROL_URL = 'https://l4hparse-hc-prod.awox.cloud/parse/'
-AWOX_CONNECT_APPLICATION_ID = '55O69FLtoxPt67LLwaHGpHmVWndhZGn9Wty8PLrJ'
-AWOX_CONNECT_CLIENT_KEY = 'PyR3yV65rytEicteNlQHSVNpAGvCByOrsLiEqJtI'
+AWOX_CONNECT_APPLICATION_ID = getenv("AWOX_CONNECT_APPLICATION_ID")
+AWOX_CONNECT_CLIENT_KEY = getenv("AWOX_CONNECT_CLIENT_KEY")
 
 
 class ParseClient:
