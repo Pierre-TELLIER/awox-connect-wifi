@@ -1,13 +1,22 @@
 import json
+import os
 import uuid
-from os import getenv
 
 import requests
 
 AWOX_CONNECT_URL = 'https://l4hparse-prod.awox.cloud/parse/'
 AWOX_HOME_CONTROL_URL = 'https://l4hparse-hc-prod.awox.cloud/parse/'
-AWOX_CONNECT_APPLICATION_ID = getenv("AWOX_CONNECT_APPLICATION_ID")
-AWOX_CONNECT_CLIENT_KEY = getenv("AWOX_CONNECT_CLIENT_KEY")
+
+DEFAULT_APPLICATION_ID = "55O69FLtoxPt67LLwaHGpHmVWndhZGn9Wty8PLrJ"
+DEFAULT_CLIENT_KEY = "PyR3yV65rytEicteNlQHSVNpAGvCByOrsLiEqJtI"
+
+
+def _application_id() -> str:
+    return os.getenv("AWOX_CONNECT_APPLICATION_ID") or DEFAULT_APPLICATION_ID
+
+
+def _client_key() -> str:
+    return os.getenv("AWOX_CONNECT_CLIENT_KEY") or DEFAULT_CLIENT_KEY
 
 
 class ParseClient:
@@ -15,7 +24,6 @@ class ParseClient:
     def __init__(self, username: str, password: str, session: requests.Session, installation_id: str | None = None):
         self._username = username
         self._password = password
-
         self.session = session
         self._object_id = None
         self._session_token = None
@@ -32,9 +40,9 @@ class ParseClient:
         payload = json.dumps({"username": self._username, "password": self._password, "_method": "GET"})
 
         headers = {
-            'x-parse-application-id': AWOX_CONNECT_APPLICATION_ID,
+            'x-parse-application-id': _application_id(),
             'x-parse-installation-id': self._installation_id,
-            'x-parse-client-key': AWOX_CONNECT_CLIENT_KEY,
+            'x-parse-client-key': _client_key(),
             'content-type': 'application/json'
         }
 
@@ -56,9 +64,9 @@ class ParseClient:
             "_method": "GET"
         })
         headers = {
-            'x-parse-application-id': AWOX_CONNECT_APPLICATION_ID,
+            'x-parse-application-id': _application_id(),
             'x-parse-installation-id': self._installation_id,
-            'x-parse-client-key': AWOX_CONNECT_CLIENT_KEY,
+            'x-parse-client-key': _client_key(),
             'content-type': 'application/json',
             'x-parse-session-token': self._session_token
         }

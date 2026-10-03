@@ -1,11 +1,37 @@
 import argparse
+import getpass
+import os
 from logging import error, debug
 
-from awox.config import load_config
+from awox.config import load_config, get_dirs
 from awox.controls.light import Light
 from awox.mqtt.client import MQTTClient
 from awox.provisioning.provisioner import Provisioner
 from awox.state import load_state, clear_state
+
+
+def _dotenv_quote(value: str) -> str:
+    # single-quoted form understood by python-dotenv
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+def init_config(home: str | None = None) -> None:
+    config_dir, _ = get_dirs(home)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    env_file = config_dir / ".env"
+
+    if env_file.exists():
+        print(f"{env_file} already exists, leaving it untouched.")
+        return
+
+    username = input("AwoX username (email): ").strip()
+    password = getpass.getpass("AwoX password: ")
+
+    fd = os.open(env_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(f"AWOX_USERNAME={_dotenv_quote(username)}\n")
+        f.write(f"AWOX_PASSWORD={_dotenv_quote(password)}\n")
+    print(f"Saved credentials to {env_file}")
 
 
 def select_device(state):
@@ -86,7 +112,7 @@ def interactive_mode(config, state):
                 else:
                     print("Unknown command")
 
-            except KeyboardInterrupt or EOFError:
+            except (KeyboardInterrupt, EOFError):
                 break
 
             except Exception as e:
@@ -151,12 +177,16 @@ def build_parser():
     group.add_argument('--on', action="store_true", help="Turn on")
     group.add_argument('--off', action="store_true", help="Turn off")
     parser.add_argument('--reprovision', action="store_true", help="restart provisioning")
+    parser.add_argument("--init", action="store_true", help="create the config file with your AwoX credentials")
     return parser
 
 
 def main(args=None):
     if args is None:
         args = build_parser().parse_args()
+    if args.init:
+        init_config()
+        return
     config = load_config()
     if args.reprovision:
         clear_state(config.storage.state_file)

@@ -13,7 +13,8 @@ dependencies = [
     "PyYAML>=6.0",
     "paho-mqtt>=2.0",
     "cryptography>= 42.0.0",
-    "python-dotenv>= 1.2.4"
+    "python-dotenv>= 1.2.4",
+    "platformdirs>=3",
 ]
 authors = [
     { name = "Pierre Tellier", email = "awox@piair.dev" },

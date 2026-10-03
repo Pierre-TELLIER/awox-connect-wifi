@@ -5,12 +5,12 @@ from pathlib import Path
 
 import yaml
 from dotenv import load_dotenv
+from platformdirs import user_config_path, user_data_path
 
-SRC_DIR = Path(__file__).resolve().parent.parent
-CONFIG_FOLDER = SRC_DIR / "config"
-CONFIG_PATH = CONFIG_FOLDER / "config.yaml"
-
-load_dotenv(CONFIG_FOLDER / ".env")
+DEFAULTS = {
+    "mqtt": {"endpoint": "a3n0qz5q2o66io.iot.us-east-1.amazonaws.com", "port": 443},
+    "logging": {"level": "INFO"},
+}
 
 
 @dataclass
@@ -38,18 +38,40 @@ class AppConfig:
     storage: StorageConfig
 
 
-def resolve_config_path(value: str) -> Path:
+def get_dirs(home: str | None = None) -> tuple[Path, Path]:
+    """Return (config_dir, data_dir) i.e. ~/.config/ and ~/.local/share/ ? """
+    home = home or os.getenv("AWOX_HOME")
+    if home:
+        root = Path(home).expanduser().resolve()
+        return root, root
+    return user_config_path("awox"), user_data_path("awox")
+
+
+def _merge(base: dict, extra: dict | None) -> dict:
+    out = dict(base)
+    for k, v in (extra or {}).items():
+        if isinstance(v, dict) and isinstance(base.get(k), dict):
+            out[k] = _merge(base[k], v)
+        else:
+            out[k] = v
+    return out
+
+
+def _resolve(value: str | None, base: Path, default: Path) -> Path:
+    # return absolute path from value or default
+    if not value:
+        return default
     path = Path(value).expanduser()
-
-    if path.is_absolute():
-        return path
-
-    return (CONFIG_PATH.parent / path).resolve()
+    return (path if path.is_absolute() else base / path).resolve()
 
 
-def load_config() -> AppConfig:
-    with CONFIG_PATH.open("r") as f:
-        data = yaml.safe_load(f)
+def load_config(home: str | None = None) -> AppConfig:
+    config_dir, data_dir = get_dirs(home)
+    load_dotenv(config_dir / ".env")  # real env vars still win
+
+    user_file = config_dir / "config.yaml"
+    user = yaml.safe_load(user_file.read_text()) if user_file.exists() else {}
+    data = _merge(DEFAULTS, user)
 
     try:
         loglevel = data["logging"]["level"]
@@ -77,23 +99,17 @@ def load_config() -> AppConfig:
     password = os.getenv("AWOX_PASSWORD")
 
     if not username or not password or username == "awox@email.org":
-        raise ValueError("AWOX_USERNAME and AWOX_PASSWORD are required. Edit config/.env to save them.")
+        raise ValueError(
+            f"AWOX_USERNAME and AWOX_PASSWORD are required. "
+            f"Run `awox --init`, or put them in {config_dir / '.env'}, or export them.."
+        )
 
+    storage = data.get("storage", {})
     return AppConfig(
-        awox=AwoxConfig(
-            username=username,
-            password=password,
-        ),
-        mqtt=MqttConfig(
-            endpoint=data["mqtt"]["endpoint"],
-            port=data["mqtt"]["port"],
-        ),
+        awox=AwoxConfig(username=username, password=password),
+        mqtt=MqttConfig(**data["mqtt"]),
         storage=StorageConfig(
-            state_file=resolve_config_path(
-                data["storage"]["state_file"],
-            ),
-            certificate_directory=resolve_config_path(
-                data["storage"]["certificate_directory"],
-            ),
+            state_file=_resolve(storage.get("state_file"), config_dir, data_dir / "state.yaml"),
+            certificate_directory=_resolve(storage.get("certificate_directory"), config_dir, data_dir / "certs"),
         ),
     )
