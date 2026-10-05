@@ -4,6 +4,8 @@ from pathlib import Path
 
 import yaml
 
+CURRENT_VERSION = 1
+
 
 @dataclass
 class CertificateState:
@@ -43,6 +45,7 @@ class Device:
 
 @dataclass
 class AppState:
+    version: int = CURRENT_VERSION
     certificates: CertificateState | None = None
     devices: dict[str, Device] = field(default_factory=dict)
     provisioned: bool = False
@@ -118,6 +121,7 @@ def save_state(path: Path, state: AppState) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
     data = {
+        "version": CURRENT_VERSION,
         "provisioned": state.provisioned,
         "certificates": (
             {
@@ -213,5 +217,4 @@ def save_certificates(
 
 def clear_state(path) -> None:
     """Clear the application state."""
-    with path.open("w") as f:
-        f.write("")
+    path.unlink(missing_ok=True)

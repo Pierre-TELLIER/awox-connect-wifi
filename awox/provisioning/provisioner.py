@@ -105,9 +105,6 @@ class Provisioner:
             root_ca=device_cert_prov["rootCa"],
         )
 
-
-
-
         info("[4/4] Fetching devices...")
 
         devices = parse_client.devices()
@@ -118,7 +115,7 @@ class Provisioner:
 
         if len(compatible_devices) == 0:
             error(f"No devices found. {devices}")
-            exit(1)
+            raise ValueError("No devices found.")
 
         for target in compatible_devices:
             account_id = target["owner"]["objectId"]

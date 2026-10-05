@@ -1,6 +1,7 @@
 import datetime
 import json
 import ssl
+import threading
 from logging import debug, info, error
 
 import paho.mqtt.client as mqtt
@@ -45,6 +46,7 @@ def iso_ts():
 
 class MQTTClient:
     def __init__(self, config: AppConfig, device: Device):
+        self.connected_event = threading.Event()
         self.config = config
         self.mqtt_config = config.mqtt
         self.device_config = device.config
@@ -76,14 +78,14 @@ class MQTTClient:
         self.client.loop_start()
 
     def close(self):
-
-        self.client.loop_stop()
         self.client.disconnect()
+        self.client.loop_stop()
 
     def send_keepalive(self):
         payload = json.dumps({"duration": 180, "publish": 1})
         TOPIC_GR = f"aw/{self.device_config.account_id}/gr/{self.device_config.udn}"
-        self.client.publish(TOPIC_GR, payload, qos=1)
+        publish_info = self.client.publish(TOPIC_GR, payload, qos=1)
+        publish_info.wait_for_publish(timeout=10)
         debug(f"[→] Keepalive → {TOPIC_GR}")
 
     def make_payload(self, href, method, body):
@@ -120,7 +122,7 @@ class MQTTClient:
 
                 debug(f"[*] Subscribed to {TOPIC_U},{TOPIC_D}")
                 self.send_keepalive()  # The keepalive is used to get the state of the device. It isn't useful to keep the connection alive
-
+                self.connected_event.set()
             else:
                 info(f"[!] Connection failed, code {reason_code}")
 
@@ -152,3 +154,6 @@ class MQTTClient:
             save_device_state(self.config.storage.state_file, self.device_config.device_id, self.device_state)
 
         return on_disconnect
+
+    def wait_for_readiness(self):
+        self.connected_event.wait(timeout=10)

@@ -1,6 +1,7 @@
 import argparse
 import getpass
 import os
+import sys
 from logging import error, debug
 
 from awox.config import load_config, get_dirs
@@ -133,7 +134,7 @@ def non_interactive_mode(config, state, args):
     if len(device_state) == 0:
         error("Device not found")
         error(f"available devices: {', '.join(state.devices)}")
-        exit(1)
+        sys.exit(1)
 
     device_state = device_state[0]
     mqtt = MQTTClient(
@@ -141,6 +142,7 @@ def non_interactive_mode(config, state, args):
         device_state,
     )
     mqtt.connect()
+    mqtt.wait_for_readiness()
     light = Light(
         mqtt=mqtt,
         device_id=device_id,

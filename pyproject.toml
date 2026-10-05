@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "awox"
-version = "0.4.0"
+version = "0.5.0"
 description = "Control AwoX smart wifi devices"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -13,7 +13,7 @@ dependencies = [
     "PyYAML>=6.0",
     "paho-mqtt>=2.0",
     "cryptography>= 42.0.0",
-    "python-dotenv>= 1.2.4",
+    "python-dotenv>= 1.0.0",
     "platformdirs>=3",
 ]
 authors = [
