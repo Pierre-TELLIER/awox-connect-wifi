@@ -46,12 +46,14 @@ def iso_ts():
 
 class MQTTClient:
     def __init__(self, config: AppConfig, device: Device):
-        self.connected_event = threading.Event()
         self.config = config
         self.mqtt_config = config.mqtt
         self.device_config = device.config
         self.device_state = device.state
-        self.client = self.configure_client()
+        self._client = self.configure_client()
+
+        self.connected_event = threading.Event()
+        self._pending = []
 
     def configure_client(self):
         # AWS IoT on 443 requires ALPN for MQTT
@@ -74,18 +76,29 @@ class MQTTClient:
         return client
 
     def connect(self):
-        self.client.connect(self.mqtt_config.endpoint, self.mqtt_config.port, keepalive=60)
-        self.client.loop_start()
+        self._client.connect(self.mqtt_config.endpoint, self.mqtt_config.port, keepalive=60)
+        self._client.loop_start()
 
     def close(self):
-        self.client.disconnect()
-        self.client.loop_stop()
+        self.flush()
+        self._client.disconnect()
+        self._client.loop_stop()
+
+    def publish(self, topic, payload):
+        msg_info = self._client.publish(topic, payload, qos=1)
+        self._pending.append(msg_info)
+        return msg_info
+
+    def flush(self, timeout=5):
+        """Block (main thread only) until queued messages are acknowledged."""
+        for msg_info in self._pending:
+            msg_info.wait_for_publish(timeout=timeout)
+        self._pending.clear()
 
     def send_keepalive(self):
         payload = json.dumps({"duration": 180, "publish": 1})
         TOPIC_GR = f"aw/{self.device_config.account_id}/gr/{self.device_config.udn}"
-        publish_info = self.client.publish(TOPIC_GR, payload, qos=1)
-        publish_info.wait_for_publish(timeout=10)
+        self.publish(TOPIC_GR, payload)
         debug(f"[→] Keepalive → {TOPIC_GR}")
 
     def make_payload(self, href, method, body):
@@ -134,6 +147,7 @@ class MQTTClient:
             topic = msg.topic
             try:
                 payload = msg.payload.decode("utf-8")
+                # If the message is on the return info topic i.e. gives information on the light status
                 if topic == f'aw/{self.device_config.account_id}/u/{self.device_config.bridge_gateware_id}':
                     parse_light_state(payload, self.device_state)
                 else:
@@ -155,5 +169,6 @@ class MQTTClient:
 
         return on_disconnect
 
-    def wait_for_readiness(self):
-        self.connected_event.wait(timeout=10)
+    def wait_for_readiness(self, timeout=15):
+        if not self.connected_event.wait(timeout):
+            raise TimeoutError("Could not connect to AWS IoT")

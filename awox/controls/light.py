@@ -22,10 +22,9 @@ class Light:
         )
 
     def send_command(self, payload) -> None:
-        self.mqtt.client.publish(
+        self.mqtt.publish(
             self.command_topic,
             payload,
-            qos=1,
         )
 
     def turn_on(self) -> None:

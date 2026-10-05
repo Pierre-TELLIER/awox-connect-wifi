@@ -8,8 +8,6 @@ venv/
 .env
 .idea
 
-config/*.yaml
-
 *.egg-info/
 dist/
 build/

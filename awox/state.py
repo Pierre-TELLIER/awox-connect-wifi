@@ -63,6 +63,10 @@ def load_state(path: Path) -> AppState:
     with path.open("r") as f:
         data = yaml.safe_load(f) or {}
 
+    version = data.get("version", 0)
+    if version != CURRENT_VERSION:
+        raise Exception(f"Unexpected application version: {version}, expected {CURRENT_VERSION}")
+
     certificates_data = data.get("certificates")
 
     certificates = None

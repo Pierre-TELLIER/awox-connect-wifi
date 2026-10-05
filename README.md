@@ -30,7 +30,7 @@ Clone the repository and install the project using the included pyproject.toml:
 ```
 git clone https://github.com/Pierre-TELLIER/awox-connect-wifi
 cd awox-connect-wifi
-python3 -m pip install .
+pip install .
 ```
 
 ## Configuration
@@ -43,10 +43,10 @@ You can choose the path of saved files with the environment variable `AWOX_HOME`
 
 ## Usage
 
-The application is launched as a Python module:
+To launch the app, just run:
 
 ```
-python3 -m awox.cli
+awox
 ```
 
 There are multiple options
@@ -89,4 +89,4 @@ Contributions, testing with other devices, and protocol observations are welcome
 
 ## Acknowledgement
 
-This work is based on [fsaris](https://github.com/fsaris/home-assistant-awox) repo for some part of the authentification 
+This work is based on [fsaris](https://github.com/fsaris/home-assistant-awox) repo for some part of the authentication 
