@@ -85,6 +85,7 @@ class MQTTClient:
         self._client.loop_stop()
 
     def publish(self, topic, payload):
+        self._pending = [m for m in self._pending if not m.is_published()]
         msg_info = self._client.publish(topic, payload, qos=1)
         self._pending.append(msg_info)
         return msg_info

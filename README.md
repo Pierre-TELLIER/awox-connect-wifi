@@ -40,6 +40,8 @@ Configuration is loaded from environment variables.
 You can use the env variables `AWOX_USERNAME` (email) and `AWOX_PASSWORD` or run the configuration wizard `awox --init`
 
 You can choose the path of saved files with the environment variable `AWOX_HOME`
+If not set, the file will be stored to the default system path
+(`~/.config/awox/.env, ~/.local/share/awox/{state.yaml,certs/}` on linux)
 
 ## Usage
 
@@ -52,13 +54,14 @@ awox
 There are multiple options
 
 ```
+--init                    run the config wizard
 -d, --device DEVICE       Set selected device ID (you can get it by running without args). It is required for other commands to work
 --on                      Turn the device on 
 --off                     Turn the device off
 -b, --brightness 0-100    Set brightness
 -t, --temperature 0-100   Set color temperature
 -c, --color R,G,B         Set RGB color
---reprovision             Restart device provisioning
+--reprovision             Restart device provisioning. Generate a new gateway associated with yout account with no cleanup
 ```
 
 The CLI handles the device connection and communication with the AwoX service.

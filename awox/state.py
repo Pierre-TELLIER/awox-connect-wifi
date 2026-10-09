@@ -63,9 +63,14 @@ def load_state(path: Path) -> AppState:
     with path.open("r") as f:
         data = yaml.safe_load(f) or {}
 
-    version = data.get("version", 0)
-    if version != CURRENT_VERSION:
-        raise Exception(f"Unexpected application version: {version}, expected {CURRENT_VERSION}")
+    if not data:
+        return AppState()
+    version = data.get("version", 1)  # files from before versioning are v1
+    if version > CURRENT_VERSION:
+        raise RuntimeError(
+            f"{path} was written by a newer awox (state version {version}, "
+            f"this one supports {CURRENT_VERSION}). Upgrade awox."
+        )
 
     certificates_data = data.get("certificates")
 
